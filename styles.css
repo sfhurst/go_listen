@@ -2,9 +2,9 @@
   --paper: #fbfaf9;
   --ink: #595457;
   --ink-soft: #746d71;
-  --rose: #cfaeb8;
-  --rose-deep: #b9909e;
-  --rose-gray: #bcb0b5;
+  --rose: #dca3b6;
+  --rose-deep: #c77f99;
+  --rose-gray: #c9a5b1;
   --check: #fffdfd;
 }
 
@@ -35,7 +35,7 @@ button { font: inherit; }
   min-height: 100svh;
   overflow: hidden;
   padding:
-    max(18px, env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-top))
     max(18px, env(safe-area-inset-right))
     max(14px, env(safe-area-inset-bottom))
     max(18px, env(safe-area-inset-left));
@@ -61,18 +61,20 @@ button { font: inherit; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
-  padding: 0.5vh 0 1vh;
+  justify-content: flex-start;
+  padding: clamp(7px, 1.15vh, 11px) 0 clamp(8px, 1.35vh, 13px);
 }
 
 .prompt {
   --indent: 0%;
   --size: 18px;
   --tone: var(--ink);
+  --line: 1.08;
   width: calc(100% - var(--indent));
   margin-left: var(--indent);
+  margin-top: var(--collage-gap, 0px);
   border: 0;
-  padding: clamp(4px, 0.75vh, 9px) 0;
+  padding: clamp(3px, 0.65vh, 8px) 0;
   background: transparent;
   color: var(--tone);
   display: grid;
@@ -114,26 +116,37 @@ button { font: inherit; }
   border-color: var(--rose-deep);
 }
 
-.prompt.is-checked .checkbox::after {
-  border-color: var(--check);
-}
+.prompt.is-checked .checkbox::after { border-color: var(--check); }
 
 .prompt-text {
   min-width: 0;
   font-size: var(--size);
-  line-height: 1.08;
+  line-height: var(--line);
   letter-spacing: -0.012em;
   overflow-wrap: normal;
+  text-transform: lowercase;
 }
 
 .signature {
   flex: 0 0 auto;
-  min-height: clamp(16px, 3.2vh, 26px);
+  min-height: clamp(14px, 2.8vh, 23px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-start;
   gap: clamp(5px, 1.6vw, 9px);
-  padding-top: clamp(5px, 1.1vh, 10px);
+}
+
+.signature-top {
+  align-items: flex-start;
+  padding-bottom: clamp(4px, 0.8vh, 8px);
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: none;
+}
+
+.signature-bottom {
+  align-items: flex-end;
+  padding-top: clamp(4px, 0.8vh, 8px);
 }
 
 .signature-block {
@@ -142,13 +155,13 @@ button { font: inherit; }
   border-radius: 1px;
   background: transparent;
 }
-.signature-block.on:nth-child(3n+1) { background: #d7bac3; }
-.signature-block.on:nth-child(3n+2) { background: #c8afb7; }
-.signature-block.on:nth-child(3n) { background: #bcaeb3; }
 
-.success-screen {
-  justify-content: space-between;
-}
+.signature-block.on:nth-child(4n+1) { background: #e1a9bc; }
+.signature-block.on:nth-child(4n+2) { background: #d593aa; }
+.signature-block.on:nth-child(4n+3) { background: #c9a1ae; }
+.signature-block.on:nth-child(4n) { background: #d7b2bf; }
+
+.success-screen { justify-content: space-between; }
 
 .success-copy {
   flex: 1;
@@ -182,11 +195,13 @@ button { font: inherit; }
 
 @media (max-height: 690px) {
   .app {
-    padding-top: max(11px, env(safe-area-inset-top));
+    padding-top: max(9px, env(safe-area-inset-top));
     padding-bottom: max(9px, env(safe-area-inset-bottom));
   }
   .prompt { padding-block: 2px; }
-  .signature { padding-top: 2px; min-height: 13px; }
+  .signature { min-height: 11px; }
+  .signature-top { padding-bottom: 2px; }
+  .signature-bottom { padding-top: 2px; }
 }
 
 @media (min-width: 700px) {

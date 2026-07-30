@@ -10,8 +10,9 @@
 <body>
   <main id="app" class="app" aria-live="polite">
     <section id="promptScreen" class="screen prompt-screen" aria-label="Recording prompts">
+      <div id="signatureTop" class="signature signature-top" aria-label="Show another set of prompts" role="button" tabindex="0"></div>
       <div id="promptList" class="prompt-list"></div>
-      <div id="signature" class="signature" aria-hidden="true"></div>
+      <div id="signatureBottom" class="signature signature-bottom" aria-hidden="true"></div>
     </section>
 
     <section id="successScreen" class="screen success-screen" hidden>
@@ -19,7 +20,7 @@
         <p id="successLead" class="success-lead">Well done.</p>
         <p class="success-command">Go Listen!</p>
       </div>
-      <div id="signatureSuccess" class="signature" aria-hidden="true"></div>
+      <div id="signatureSuccess" class="signature signature-bottom" aria-hidden="true"></div>
     </section>
   </main>
 
