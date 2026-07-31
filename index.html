@@ -10,20 +10,201 @@
 <body>
   <main id="app" class="app" aria-live="polite">
     <section id="promptScreen" class="screen prompt-screen" aria-label="Recording prompts">
-      <div id="signatureTop" class="signature signature-top" aria-label="Show another set of prompts" role="button" tabindex="0"></div>
+      <div id="signatureTop" class="signature signature-top interactive-signature" aria-label="Show another set of prompts" role="button" tabindex="0"></div>
       <div id="promptList" class="prompt-list"></div>
-      <div id="signatureBottom" class="signature signature-bottom" aria-hidden="true"></div>
+      <div id="signatureBottom" class="signature signature-bottom interactive-signature" aria-label="Open recording log" role="button" tabindex="0"></div>
     </section>
 
     <section id="successScreen" class="screen success-screen" hidden>
+      <div id="signatureSuccessTop" class="signature signature-top interactive-signature" aria-label="Show another set of prompts" role="button" tabindex="0"></div>
       <div class="success-copy">
         <p id="successLead" class="success-lead">Well done.</p>
         <p class="success-command">Go Listen!</p>
       </div>
-      <div id="signatureSuccess" class="signature signature-bottom" aria-hidden="true"></div>
+      <div id="signatureSuccessBottom" class="signature signature-bottom interactive-signature" aria-label="Open recording log" role="button" tabindex="0"></div>
+    </section>
+
+    <section id="logScreen" class="screen log-screen" hidden aria-label="Recording log">
+      <div id="signatureLogTop" class="signature signature-top"></div>
+
+      <div class="log-shell">
+        <section id="logListView" class="log-view">
+          <header class="log-header">
+            <div>
+              <p class="eyebrow">field notebook</p>
+              <h1>recording log</h1>
+            </div>
+            <button id="addEntryButton" class="text-button primary-action" type="button">add entry</button>
+          </header>
+
+          <div class="sound-search">
+            <label for="logSearch" class="visually-hidden">Find a sound</label>
+            <input id="logSearch" type="search" autocomplete="off" spellcheck="false" placeholder="find a sound…" />
+            <button id="clearLogSearch" class="search-clear" type="button" aria-label="Clear search" hidden>clear</button>
+          </div>
+          <p id="searchStatus" class="search-status" aria-live="polite"></p>
+
+          <div id="emptyLog" class="empty-log" hidden>
+            <p>No recordings yet.</p>
+            <button id="emptyAddButton" class="text-button" type="button">add your first entry</button>
+          </div>
+
+          <div id="noSearchResults" class="empty-log" hidden>
+            <p>No recordings contain that sound.</p>
+          </div>
+
+          <div id="logEntries" class="log-entries"></div>
+
+          <footer class="log-tools-link">
+            <button id="openBackupButton" class="text-button quiet-action" type="button">backup tools</button>
+          </footer>
+        </section>
+
+        <section id="logEntryView" class="log-view" hidden>
+          <header class="log-header compact-header">
+            <button id="cancelEntryButton" class="text-button quiet-action" type="button">cancel</button>
+            <h1 id="entryHeading">new entry</h1>
+            <button id="saveEntryButton" class="text-button primary-action" type="button">save</button>
+          </header>
+
+          <form id="entryForm" class="entry-form" novalidate>
+            <input id="entryId" type="hidden" />
+
+            <div class="field-row two-column">
+              <label class="field">
+                <span>recording number</span>
+                <input id="recordingNumber" name="recordingNumber" type="text" inputmode="numeric" autocomplete="off" placeholder="010" />
+              </label>
+              <label class="field">
+                <span>date</span>
+                <input id="recordingDate" name="date" type="date" />
+              </label>
+            </div>
+
+            <div class="field-row two-column">
+              <label class="field">
+                <span>time</span>
+                <input id="recordingTime" name="time" type="time" />
+              </label>
+              <label class="field">
+                <span>volume setting</span>
+                <input id="volumeSetting" name="volumeSetting" type="text" autocomplete="off" placeholder="1–100" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>location</span>
+              <input id="locationField" name="location" type="text" autocomplete="off" />
+            </label>
+
+            <label class="field">
+              <span>subject</span>
+              <input id="subjectField" name="subject" type="text" autocomplete="off" />
+            </label>
+
+            <div class="field-row two-column">
+              <label class="field">
+                <span>device</span>
+                <select id="deviceField" name="device">
+                  <option value="">select</option>
+                  <option>H4NPro</option>
+                  <option>F6</option>
+                  <option value="other">other</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>device detail</span>
+                <input id="deviceOther" name="deviceOther" type="text" autocomplete="off" placeholder="only if other" />
+              </label>
+            </div>
+
+            <fieldset class="field fieldset">
+              <legend>mics</legend>
+              <div class="check-grid">
+                <label><input type="checkbox" name="mics" value="Built-in mics" /> <span>built-in mics</span></label>
+                <label><input type="checkbox" name="mics" value="BP4025" /> <span>BP4025</span></label>
+                <label><input type="checkbox" name="mics" value="NTG3" /> <span>NTG3</span></label>
+                <label><input type="checkbox" name="mics" value="Other" /> <span>other</span></label>
+              </div>
+            </fieldset>
+
+            <label class="field">
+              <span>accessories</span>
+              <input id="accessoriesField" name="accessories" type="text" autocomplete="off" placeholder="windscreen, tripod…" />
+            </label>
+
+            <label class="field">
+              <span>highlights</span>
+              <textarea id="highlightsField" name="highlights" rows="4" placeholder="15:00 — crows&#10;23:00 — garbage truck"></textarea>
+            </label>
+
+            <label class="field">
+              <span>captured</span>
+              <textarea id="capturedField" name="captured" rows="5"></textarea>
+            </label>
+
+            <label class="field">
+              <span>feeling</span>
+              <textarea id="feelingField" name="feeling" rows="3"></textarea>
+            </label>
+
+            <label class="field">
+              <span>quality</span>
+              <textarea id="qualityField" name="quality" rows="3"></textarea>
+            </label>
+
+            <label class="field">
+              <span>keep</span>
+              <select id="keepField" name="keep">
+                <option value="">undecided</option>
+                <option value="keep">keep</option>
+                <option value="maybe">maybe</option>
+                <option value="delete">delete</option>
+              </select>
+            </label>
+
+            <div id="deleteEntryWrap" class="delete-wrap" hidden>
+              <button id="deleteEntryButton" class="text-button danger-action" type="button">delete entry</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="backupView" class="log-view" hidden>
+          <header class="log-header compact-header">
+            <button id="closeBackupButton" class="text-button quiet-action" type="button">back</button>
+            <h1>backup tools</h1>
+            <span class="header-spacer" aria-hidden="true"></span>
+          </header>
+
+          <div class="backup-actions">
+            <article class="backup-card">
+              <h2>backup</h2>
+              <p>Save the complete recording log as a Go Listen backup file.</p>
+              <button id="backupButton" class="text-button primary-action" type="button">create backup</button>
+            </article>
+
+            <article class="backup-card">
+              <h2>restore</h2>
+              <p>Replace the current log with a Go Listen backup.</p>
+              <button id="restoreButton" class="text-button" type="button">choose backup</button>
+            </article>
+
+            <article class="backup-card">
+              <h2>merge</h2>
+              <p>Add entries missing from the current log without duplicating existing entries.</p>
+              <button id="mergeButton" class="text-button" type="button">choose backup</button>
+            </article>
+          </div>
+          <p id="backupStatus" class="backup-status" role="status"></p>
+          <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
+        </section>
+      </div>
+
+      <div id="signatureLogBottom" class="signature signature-bottom interactive-signature" aria-label="Close recording log" role="button" tabindex="0"></div>
     </section>
   </main>
 
+  <script src="sounds.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

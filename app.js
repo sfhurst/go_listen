@@ -2,6 +2,9 @@
   "use strict";
 
   const STORAGE_KEY = "goListen.phase1.v2";
+  const LOG_STORAGE_KEY = "goListen.recordingLog.v1";
+  const BACKUP_FORMAT = "go-listen-backup";
+  const BACKUP_VERSION = 1;
   const TEST_MODE = new URLSearchParams(location.search).get("test") === "1";
   const COOLDOWN_MS = TEST_MODE ? 10_000 : 60 * 60 * 1000;
 
@@ -99,12 +102,17 @@
     successLead: document.getElementById("successLead"),
     signatureTop: document.getElementById("signatureTop"),
     signatureBottom: document.getElementById("signatureBottom"),
-    signatureSuccess: document.getElementById("signatureSuccess")
+    signatureSuccessTop: document.getElementById("signatureSuccessTop"),
+    signatureSuccessBottom: document.getElementById("signatureSuccessBottom"),
+    logScreen: document.getElementById("logScreen"),
+    signatureLogTop: document.getElementById("signatureLogTop"),
+    signatureLogBottom: document.getElementById("signatureLogBottom")
   };
 
   let state = loadState();
   let resizeTimer = null;
   let rerolling = false;
+  let activeMainScreen = "prompt";
 
   function shuffle(arr) {
     const out = [...arr];
@@ -156,7 +164,7 @@
 
   // Top pattern: variable length, no fixed opening, 3–5 filled blocks,
   // and never three filled blocks in a row.
-  function makeTopSignature() {
+  function makeTopSignatureFor(target) {
     const count = 7 + Math.floor(Math.random() * 5);
     const desired = Math.min(count - 2, 3 + Math.floor(Math.random() * 3));
     let on = new Set();
@@ -172,7 +180,11 @@
       }
       if (!hasTriple) on = test;
     }
-    appendBlocks(els.signatureTop, count, on);
+    appendBlocks(target, count, on);
+  }
+
+  function makeTopSignature() {
+    makeTopSignatureFor(els.signatureTop);
   }
 
   // Bottom pattern keeps its recognizable rule: first two filled, third blank,
@@ -397,8 +409,10 @@
       els.promptScreen.hidden = true;
       els.promptScreen.classList.remove("is-fading");
       els.successLead.textContent = state.successMessage || "Well done.";
-      makeBottomSignature(els.signatureSuccess);
+      makeTopSignatureFor(els.signatureSuccessTop);
+      makeBottomSignature(els.signatureSuccessBottom);
       els.successScreen.hidden = false;
+      activeMainScreen = "success";
       els.successScreen.classList.add("is-fading");
       requestAnimationFrame(() => requestAnimationFrame(() => els.successScreen.classList.remove("is-fading")));
       scheduleWakeup();
@@ -409,7 +423,9 @@
     els.successLead.textContent = state.successMessage || "Well done.";
     els.promptScreen.hidden = true;
     els.successScreen.hidden = false;
-    makeBottomSignature(els.signatureSuccess);
+    makeTopSignatureFor(els.signatureSuccessTop);
+    makeBottomSignature(els.signatureSuccessBottom);
+    activeMainScreen = "success";
     scheduleWakeup();
   }
 
@@ -422,6 +438,7 @@
         els.successScreen.hidden = true;
         makeTopSignature();
         makeBottomSignature(els.signatureBottom);
+        activeMainScreen = "prompt";
         renderAdaptiveList();
       }
     }, delay + 40);
@@ -440,6 +457,7 @@
 
       makeTopSignature();
       makeBottomSignature(els.signatureBottom);
+      activeMainScreen = "prompt";
       renderAdaptiveList();
       els.promptScreen.classList.remove("is-fading");
       rerolling = false;
@@ -452,6 +470,7 @@
     } else {
       makeTopSignature();
       makeBottomSignature(els.signatureBottom);
+      activeMainScreen = "prompt";
       renderAdaptiveList();
     }
   }
@@ -483,22 +502,415 @@
     }
   });
 
-  // Hidden testing shortcut: triple-tap either bottom signature to clear cooldown.
-  let taps = 0;
-  let tapTimer;
-  [els.signatureBottom, els.signatureSuccess].forEach(signature => {
-    signature.addEventListener("click", () => {
-      taps += 1;
-      clearTimeout(tapTimer);
-      tapTimer = setTimeout(() => { taps = 0; }, 700);
-      if (taps >= 3) {
-        taps = 0;
-        state.cooldownUntil = 0;
-        saveState();
-        render();
+
+
+  function bindDoubleTap(element, callback) {
+    let lastTap = 0;
+    element.addEventListener("click", event => {
+      const now = Date.now();
+      if (now - lastTap <= 360) {
+        event.preventDefault();
+        lastTap = 0;
+        callback();
+      } else {
+        lastTap = now;
       }
     });
+    element.addEventListener("dblclick", event => event.preventDefault());
+    element.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        callback();
+      }
+    });
+  }
+
+  function resetFromSuccess() {
+    state.cooldownUntil = 0;
+    state.queues.subjects = shuffle(state.queues.subjects);
+    state.queues.scavenger = shuffle(state.queues.scavenger);
+    state.queues.perspectives = shuffle(state.queues.perspectives);
+    saveState();
+    activeMainScreen = "prompt";
+    render();
+  }
+
+  function openLog() {
+    els.promptScreen.hidden = true;
+    els.successScreen.hidden = true;
+    els.logScreen.hidden = false;
+    makeTopSignatureFor(els.signatureLogTop);
+    makeBottomSignature(els.signatureLogBottom);
+    showLogList();
+  }
+
+  function closeLog() {
+    els.logScreen.hidden = true;
+    if (activeMainScreen === "success" && currentCooldown()) {
+      renderSuccess();
+    } else {
+      activeMainScreen = "prompt";
+      state.cooldownUntil = 0;
+      saveState();
+      makeTopSignature();
+      makeBottomSignature(els.signatureBottom);
+      renderAdaptiveList();
+    }
+  }
+
+  bindDoubleTap(els.signatureBottom, openLog);
+  bindDoubleTap(els.signatureSuccessBottom, openLog);
+  bindDoubleTap(els.signatureLogBottom, closeLog);
+  bindDoubleTap(els.signatureSuccessTop, resetFromSuccess);
+
+  // ----- Recording log -----
+  const logEls = {
+    listView: document.getElementById("logListView"),
+    entryView: document.getElementById("logEntryView"),
+    backupView: document.getElementById("backupView"),
+    entries: document.getElementById("logEntries"),
+    empty: document.getElementById("emptyLog"),
+    noResults: document.getElementById("noSearchResults"),
+    search: document.getElementById("logSearch"),
+    clearSearch: document.getElementById("clearLogSearch"),
+    searchStatus: document.getElementById("searchStatus"),
+    add: document.getElementById("addEntryButton"),
+    emptyAdd: document.getElementById("emptyAddButton"),
+    openBackup: document.getElementById("openBackupButton"),
+    closeBackup: document.getElementById("closeBackupButton"),
+    cancelEntry: document.getElementById("cancelEntryButton"),
+    saveEntry: document.getElementById("saveEntryButton"),
+    deleteEntry: document.getElementById("deleteEntryButton"),
+    deleteWrap: document.getElementById("deleteEntryWrap"),
+    heading: document.getElementById("entryHeading"),
+    form: document.getElementById("entryForm"),
+    entryId: document.getElementById("entryId"),
+    backup: document.getElementById("backupButton"),
+    restore: document.getElementById("restoreButton"),
+    merge: document.getElementById("mergeButton"),
+    fileInput: document.getElementById("backupFileInput"),
+    status: document.getElementById("backupStatus")
+  };
+
+  let pendingFileMode = null;
+  let currentLogSearch = "";
+
+  const SOUND_TERMS = Array.isArray(window.GO_LISTEN_SOUND_TERMS)
+    ? window.GO_LISTEN_SOUND_TERMS
+    : [];
+
+  function loadLog() {
+    try {
+      const value = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY));
+      return Array.isArray(value) ? value : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveLog(entries) {
+    localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function makeId() {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return `entry-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function showOnly(view) {
+    [logEls.listView, logEls.entryView, logEls.backupView].forEach(item => item.hidden = item !== view);
+    document.querySelector(".log-shell").scrollTop = 0;
+  }
+
+  function formatDate(value) {
+    if (!value) return "date not entered";
+    const [year, month, day] = value.split("-");
+    return `${Number(month)}/${Number(day)}/${String(year).slice(-2)}`;
+  }
+
+  function formatTime(value) {
+    if (!value) return "time not entered";
+    const [h, m] = value.split(":").map(Number);
+    const suffix = h >= 12 ? "PM" : "AM";
+    return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${suffix}`;
+  }
+
+  function summaryFor(entry) {
+    const text = entry.highlights || entry.captured || entry.feeling || entry.quality || "No notes yet.";
+    return text.split("\n").find(Boolean) || "No notes yet.";
+  }
+
+  function normalizeSearchText(value) {
+    return String(value ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function entrySearchText(entry) {
+    const values = [
+      entry.recordingNumber, entry.date, formatDate(entry.date), entry.time, formatTime(entry.time),
+      entry.location, entry.subject, entry.device, entry.deviceOther, ...(entry.mics || []),
+      entry.accessories, entry.volumeSetting, entry.highlights, entry.captured, entry.feeling,
+      entry.quality, entry.keep
+    ];
+    return normalizeSearchText(values.filter(Boolean).join(" "));
+  }
+
+  function searchExpansions(term) {
+    const normalized = normalizeSearchText(term);
+    if (!normalized) return [];
+    const matches = new Set([normalized]);
+
+    SOUND_TERMS.forEach(group => {
+      const normalizedGroup = group.map(normalizeSearchText).filter(Boolean);
+      const belongs = normalizedGroup.some(item =>
+        item === normalized || item.split(" ").includes(normalized) || normalized.split(" ").includes(item)
+      );
+      if (belongs) normalizedGroup.forEach(item => matches.add(item));
+    });
+
+    return [...matches];
+  }
+
+  function entryMatchesSearch(entry, query) {
+    const normalizedQuery = normalizeSearchText(query);
+    if (!normalizedQuery) return true;
+    const haystack = entrySearchText(entry);
+    const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+
+    // Every remembered idea must be present, but each idea may match any of
+    // its sound-family words. "footsteps crow train" therefore narrows.
+    return terms.every(term => searchExpansions(term).some(candidate => haystack.includes(candidate)));
+  }
+
+  function sortedLog(entries) {
+    return [...entries].sort((a, b) => {
+      const ad = `${a.date || "0000-00-00"}T${a.time || "00:00"}`;
+      const bd = `${b.date || "0000-00-00"}T${b.time || "00:00"}`;
+      return bd.localeCompare(ad) || String(b.recordingNumber || "").localeCompare(String(a.recordingNumber || ""), undefined, { numeric: true });
+    });
+  }
+
+  function renderLogList() {
+    const allEntries = sortedLog(loadLog());
+    const query = currentLogSearch.trim();
+    const entries = allEntries.filter(entry => entryMatchesSearch(entry, query));
+    logEls.entries.innerHTML = "";
+    logEls.empty.hidden = allEntries.length !== 0;
+    logEls.noResults.hidden = !query || entries.length !== 0 || allEntries.length === 0;
+    logEls.clearSearch.hidden = !query;
+    logEls.searchStatus.textContent = query
+      ? `${entries.length} ${entries.length === 1 ? "recording" : "recordings"} found`
+      : "";
+
+    entries.forEach(entry => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "log-entry-card";
+      button.innerHTML = `
+        <span class="entry-card-topline">
+          <strong>${escapeHtml(entry.recordingNumber || "—")}</strong>
+          <span>${escapeHtml(formatDate(entry.date))} · ${escapeHtml(formatTime(entry.time))}</span>
+        </span>
+        <span class="entry-card-location">${escapeHtml(entry.location || "location not entered")}</span>
+        <span class="entry-card-subject">${escapeHtml(entry.subject || summaryFor(entry))}</span>
+        <span class="entry-card-meta">${escapeHtml([entry.device === "other" ? entry.deviceOther : entry.device, ...(entry.mics || []), entry.keep].filter(Boolean).join(" · "))}</span>`;
+      button.addEventListener("click", () => openEntry(entry.id));
+      logEls.entries.appendChild(button);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+  }
+
+  function showLogList() {
+    renderLogList();
+    showOnly(logEls.listView);
+  }
+
+  function clearLogSearch() {
+    currentLogSearch = "";
+    logEls.search.value = "";
+    renderLogList();
+    logEls.search.focus();
+  }
+
+  function defaultDate() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }
+
+  function openEntry(id = "") {
+    logEls.form.reset();
+    const entries = loadLog();
+    const entry = entries.find(item => item.id === id);
+    logEls.entryId.value = entry?.id || "";
+    logEls.heading.textContent = entry ? "edit entry" : "new entry";
+    logEls.deleteWrap.hidden = !entry;
+
+    const values = entry || { date: defaultDate(), mics: [] };
+    const fields = {
+      recordingNumber: values.recordingNumber,
+      recordingDate: values.date,
+      recordingTime: values.time,
+      volumeSetting: values.volumeSetting,
+      locationField: values.location,
+      subjectField: values.subject,
+      deviceField: values.device,
+      deviceOther: values.deviceOther,
+      accessoriesField: values.accessories,
+      highlightsField: values.highlights,
+      capturedField: values.captured,
+      feelingField: values.feeling,
+      qualityField: values.quality,
+      keepField: values.keep
+    };
+    Object.entries(fields).forEach(([idName, value]) => {
+      document.getElementById(idName).value = value || "";
+    });
+    document.querySelectorAll('input[name="mics"]').forEach(input => {
+      input.checked = (values.mics || []).includes(input.value);
+    });
+    showOnly(logEls.entryView);
+  }
+
+  function formEntry() {
+    const existingId = logEls.entryId.value;
+    const entries = loadLog();
+    const previous = entries.find(item => item.id === existingId);
+    const value = id => document.getElementById(id).value.trim();
+    return {
+      id: existingId || makeId(),
+      createdAt: previous?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      recordingNumber: value("recordingNumber"),
+      date: document.getElementById("recordingDate").value,
+      time: document.getElementById("recordingTime").value,
+      location: value("locationField"),
+      subject: value("subjectField"),
+      device: document.getElementById("deviceField").value,
+      deviceOther: value("deviceOther"),
+      mics: [...document.querySelectorAll('input[name="mics"]:checked')].map(input => input.value),
+      accessories: value("accessoriesField"),
+      volumeSetting: value("volumeSetting"),
+      highlights: value("highlightsField"),
+      captured: value("capturedField"),
+      feeling: value("feelingField"),
+      quality: value("qualityField"),
+      keep: document.getElementById("keepField").value
+    };
+  }
+
+  function saveCurrentEntry() {
+    const entry = formEntry();
+    const entries = loadLog();
+    const index = entries.findIndex(item => item.id === entry.id);
+    if (index >= 0) entries[index] = entry;
+    else entries.push(entry);
+    saveLog(entries);
+    showLogList();
+  }
+
+  function deleteCurrentEntry() {
+    const id = logEls.entryId.value;
+    if (!id || !confirm("Delete this recording entry?")) return;
+    saveLog(loadLog().filter(item => item.id !== id));
+    showLogList();
+  }
+
+  function showBackup() {
+    logEls.status.textContent = "";
+    showOnly(logEls.backupView);
+  }
+
+  function backupPayload() {
+    return {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      createdAt: new Date().toISOString(),
+      entries: loadLog()
+    };
+  }
+
+  function downloadBackup() {
+    const payload = JSON.stringify(backupPayload(), null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = URL.createObjectURL(blob);
+    link.download = `go-listen-log-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+    logEls.status.textContent = `${loadLog().length} entries backed up.`;
+  }
+
+  function chooseBackup(mode) {
+    pendingFileMode = mode;
+    logEls.fileInput.value = "";
+    logEls.fileInput.click();
+  }
+
+  function validateBackup(data) {
+    if (!data || data.format !== BACKUP_FORMAT || data.version !== BACKUP_VERSION || !Array.isArray(data.entries)) {
+      throw new Error("This is not a compatible Go Listen backup file.");
+    }
+    const valid = data.entries.every(entry => entry && typeof entry.id === "string");
+    if (!valid) throw new Error("The backup contains invalid recording entries.");
+    return data.entries;
+  }
+
+  async function handleBackupFile(file) {
+    try {
+      const data = JSON.parse(await file.text());
+      const incoming = validateBackup(data);
+      if (pendingFileMode === "restore") {
+        if (!confirm(`Restore ${incoming.length} entries? This will replace the current log.`)) return;
+        saveLog(incoming);
+        logEls.status.textContent = `${incoming.length} entries restored.`;
+      } else {
+        const current = loadLog();
+        const ids = new Set(current.map(entry => entry.id));
+        const additions = incoming.filter(entry => !ids.has(entry.id));
+        saveLog([...current, ...additions]);
+        logEls.status.textContent = `${additions.length} entries added; ${incoming.length - additions.length} already existed.`;
+      }
+    } catch (error) {
+      logEls.status.textContent = error.message || "The backup could not be read.";
+    }
+  }
+
+  logEls.search.addEventListener("input", event => {
+    currentLogSearch = event.target.value;
+    renderLogList();
   });
+  logEls.clearSearch.addEventListener("click", clearLogSearch);
+  logEls.search.addEventListener("keydown", event => {
+    if (event.key === "Escape" && currentLogSearch) clearLogSearch();
+  });
+
+  logEls.add.addEventListener("click", () => openEntry());
+  logEls.emptyAdd.addEventListener("click", () => openEntry());
+  logEls.cancelEntry.addEventListener("click", showLogList);
+  logEls.saveEntry.addEventListener("click", saveCurrentEntry);
+  logEls.deleteEntry.addEventListener("click", deleteCurrentEntry);
+  logEls.openBackup.addEventListener("click", showBackup);
+  logEls.closeBackup.addEventListener("click", showLogList);
+  logEls.backup.addEventListener("click", downloadBackup);
+  logEls.restore.addEventListener("click", () => chooseBackup("restore"));
+  logEls.merge.addEventListener("click", () => chooseBackup("merge"));
+  logEls.fileInput.addEventListener("change", () => {
+    const file = logEls.fileInput.files?.[0];
+    if (file) handleBackupFile(file);
+  });
+
 
   render();
 })();
