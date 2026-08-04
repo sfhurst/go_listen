@@ -181,6 +181,7 @@
   let state = loadState();
   let resizeTimer = null;
   let rerolling = false;
+  let transitioning = false;
   let activeMainScreen = "prompt";
 
   function shuffle(arr) {
@@ -213,6 +214,55 @@
 
   function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function prefersReducedMotion() {
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function settlePromptPage() {
+    const buttons = [...els.promptList.querySelectorAll(".prompt")];
+    buttons.forEach((button, index) => {
+      const direction = Math.random() < 0.5 ? -1 : 1;
+      button.style.setProperty("--enter-x", `${direction * (2 + Math.random() * 8).toFixed(2)}px`);
+      button.style.setProperty("--enter-y", `${(-5 + Math.random() * 11).toFixed(2)}px`);
+      button.style.setProperty("--enter-scale", (0.955 + Math.random() * 0.025).toFixed(3));
+      button.style.setProperty("--enter-delay", `${Math.round(index * 34 + Math.random() * 80)}ms`);
+      button.classList.remove("is-settling");
+    });
+
+    if (prefersReducedMotion()) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      buttons.forEach(button => button.classList.add("is-settling"));
+      els.signatureTop.classList.add("is-waking");
+      els.signatureBottom.classList.add("is-waking");
+      window.setTimeout(() => {
+        els.signatureTop.classList.remove("is-waking");
+        els.signatureBottom.classList.remove("is-waking");
+      }, 1200);
+    }));
+  }
+
+  function scramblePromptPage(kind, onDone) {
+    if (prefersReducedMotion()) {
+      onDone();
+      return;
+    }
+
+    const buttons = [...els.promptList.querySelectorAll(".prompt")];
+    buttons.forEach((button, index) => {
+      const angle = (-3.2 + Math.random() * 6.4).toFixed(2);
+      const x = (-42 + Math.random() * 84).toFixed(2);
+      const y = (-24 + Math.random() * 48).toFixed(2);
+      button.style.setProperty("--exit-x", `${x}px`);
+      button.style.setProperty("--exit-y", `${y}px`);
+      button.style.setProperty("--exit-rotate", `${angle}deg`);
+      button.style.setProperty("--exit-scale", (0.91 + Math.random() * 0.08).toFixed(3));
+      button.style.setProperty("--exit-delay", `${Math.round(Math.random() * 210 + index * 8)}ms`);
+      button.classList.add("is-scrambling");
+    });
+    els.promptScreen.classList.add(kind === "complete" ? "is-completing-page" : "is-rerolling-page");
+    window.setTimeout(onDone, 1080);
   }
 
   function currentCooldown() {
@@ -461,6 +511,7 @@
     // composer use the available height for typography and irregular spacing.
     setTypeScale(items, 1);
     enlargeTypographyToFit(items);
+    settlePromptPage();
   }
 
   function fitsViewport() {
@@ -488,10 +539,11 @@
   }
 
   function completePrompt(button, item) {
-    if (button.classList.contains("is-checked")) return;
-    button.classList.add("is-checked", "is-completing");
+    if (transitioning || button.classList.contains("is-checked")) return;
+    transitioning = true;
+    button.classList.add("is-checked");
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       const index = state.deck.indexOf(item.id);
       if (index >= 0) state.deck.splice(index, 1);
       state.discard.push(item.id);
@@ -499,24 +551,28 @@
       state.cooldownUntil = Date.now() + COOLDOWN_MS;
       state.successMessage = successMessages[Math.floor(Math.random() * successMessages.length)];
       saveState();
-      transitionToSuccess();
-    }, 210);
+
+      scramblePromptPage("complete", () => {
+        showSuccessAfterTransition();
+        transitioning = false;
+      });
+    }, 360);
   }
 
-  function transitionToSuccess() {
-    els.promptScreen.classList.add("is-fading");
-    setTimeout(() => {
-      els.promptScreen.hidden = true;
-      els.promptScreen.classList.remove("is-fading");
-      els.successLead.textContent = state.successMessage || "Well done.";
-      makeTopSignatureFor(els.signatureSuccessTop);
-      makeBottomSignature(els.signatureSuccessBottom);
-      els.successScreen.hidden = false;
-      activeMainScreen = "success";
-      els.successScreen.classList.add("is-fading");
-      requestAnimationFrame(() => requestAnimationFrame(() => els.successScreen.classList.remove("is-fading")));
-      scheduleWakeup();
-    }, 220);
+  function showSuccessAfterTransition() {
+    els.promptScreen.hidden = true;
+    els.promptScreen.classList.remove("is-completing-page", "is-rerolling-page", "is-fading");
+    els.successLead.textContent = state.successMessage || "Well done.";
+    makeTopSignatureFor(els.signatureSuccessTop);
+    makeBottomSignature(els.signatureSuccessBottom);
+    els.successScreen.hidden = false;
+    activeMainScreen = "success";
+    els.successScreen.classList.add("is-success-entering");
+    requestAnimationFrame(() => requestAnimationFrame(() => els.successScreen.classList.add("is-visible")));
+    window.setTimeout(() => {
+      els.successScreen.classList.remove("is-success-entering", "is-visible");
+    }, 1300);
+    scheduleWakeup();
   }
 
   function renderSuccess() {
@@ -535,31 +591,39 @@
       if (!currentCooldown()) {
         state.cooldownUntil = 0;
         saveState();
-        els.successScreen.hidden = true;
-        makeTopSignature();
-        makeBottomSignature(els.signatureBottom);
-        activeMainScreen = "prompt";
-        renderAdaptiveList();
+        const revealList = () => {
+          els.successScreen.hidden = true;
+          els.successScreen.classList.remove("is-waking-out");
+          makeTopSignature();
+          makeBottomSignature(els.signatureBottom);
+          activeMainScreen = "prompt";
+          renderAdaptiveList();
+        };
+        if (prefersReducedMotion()) revealList();
+        else {
+          els.successScreen.classList.add("is-waking-out");
+          window.setTimeout(revealList, 760);
+        }
       }
     }, delay + 40);
   }
 
   function rerollAllLists() {
-    if (rerolling || currentCooldown()) return;
+    if (rerolling || transitioning || currentCooldown()) return;
     rerolling = true;
-    els.promptScreen.classList.add("is-fading");
+    transitioning = true;
 
-    setTimeout(() => {
+    scramblePromptPage("reroll", () => {
       state.deck = shuffle(state.deck);
       saveState();
-
       makeTopSignature();
       makeBottomSignature(els.signatureBottom);
       activeMainScreen = "prompt";
+      els.promptScreen.classList.remove("is-rerolling-page", "is-completing-page");
       renderAdaptiveList();
-      els.promptScreen.classList.remove("is-fading");
       rerolling = false;
-    }, 170);
+      transitioning = false;
+    });
   }
 
   function render() {

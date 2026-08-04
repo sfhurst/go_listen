@@ -486,3 +486,93 @@ button { font: inherit; }
   white-space: nowrap !important;
   border: 0 !important;
 }
+
+/* Quiet composition motion. Transforms never affect measured layout. */
+.prompt {
+  transform-origin: 42% 50%;
+  will-change: transform, opacity, filter;
+}
+
+.prompt.is-settling {
+  animation: prompt-settle 1080ms cubic-bezier(.16,.84,.24,1) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+@keyframes prompt-settle {
+  0% {
+    opacity: 0;
+    filter: blur(0.7px);
+    transform: translate(var(--enter-x, 0), var(--enter-y, 0)) scale(var(--enter-scale, .97));
+  }
+  56% { opacity: 0.9; }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.prompt.is-scrambling {
+  animation: prompt-scramble 820ms cubic-bezier(.42,0,.76,.18) both;
+  animation-delay: var(--exit-delay, 0ms);
+  pointer-events: none;
+}
+
+@keyframes prompt-scramble {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+  38% { opacity: .76; }
+  100% {
+    opacity: 0;
+    filter: blur(1.2px);
+    transform: translate(var(--exit-x, 0), var(--exit-y, 0)) rotate(var(--exit-rotate, 0deg)) scale(var(--exit-scale, .95));
+  }
+}
+
+.signature.is-waking .signature-block.on {
+  animation: signature-wake 950ms cubic-bezier(.2,.75,.25,1) both;
+}
+.signature.is-waking .signature-block:nth-child(2n) { animation-delay: 80ms; }
+.signature.is-waking .signature-block:nth-child(3n) { animation-delay: 145ms; }
+
+@keyframes signature-wake {
+  0% { opacity: 0; transform: scaleX(.72); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+
+.success-screen.is-success-entering .success-copy,
+.success-screen.is-success-entering .signature {
+  opacity: 0;
+  transform: scale(.975) translateY(5px);
+}
+.success-screen.is-success-entering.is-visible .success-copy,
+.success-screen.is-success-entering.is-visible .signature {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 920ms ease, transform 1100ms cubic-bezier(.16,.84,.24,1);
+}
+.success-screen.is-waking-out {
+  opacity: 0;
+  transform: scale(.99);
+  transition: opacity 700ms ease, transform 760ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt.is-settling,
+  .prompt.is-scrambling,
+  .signature.is-waking .signature-block.on {
+    animation: none !important;
+  }
+  .success-screen.is-success-entering .success-copy,
+  .success-screen.is-success-entering .signature,
+  .success-screen.is-success-entering.is-visible .success-copy,
+  .success-screen.is-success-entering.is-visible .signature,
+  .success-screen.is-waking-out {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
