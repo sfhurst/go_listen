@@ -1,33 +1,27 @@
 # Go Listen
 
-A single-screen field-recording inspiration engine with a built-in field notebook.
-
-## Main screen
-
-- Prompts are composed to fit the available screen.
-- Double-click or double-tap the top bar to reshuffle prompts.
-- Completing a prompt shows the completion screen and starts the cooldown.
-- The top and bottom bars remain visible on the completion screen.
-
-## Recording log
-
-- Double-click or double-tap the bottom bar to open the log.
-- Double-click or double-tap the bottom bar again to return to the prompt or completion screen that was active.
-- The log has three views: recording list, recording entry, and backup tools.
-- Entries are stored in localStorage on the current browser/device.
-
-## Backup tools
-
-- **Backup** downloads the complete log as a Go Listen JSON backup.
-- **Restore** replaces the current log with a compatible backup.
-- **Merge** adds entries that are missing, using permanent entry IDs to avoid duplicates.
+Open `index.html` in a browser, or publish the folder through GitHub Pages.
 
 ## Test mode
 
-Append `?test=1` to the URL to shorten the cooldown while testing.
+Add `?test=1` to the URL to reduce the completion cooldown to 10 seconds.
 
-## Find a sound
+## Prompt engine
 
-The recording log includes a live search field that searches every part of an entry. A small vocabulary in `sounds.js` quietly expands remembered terms, so searches such as `steps`, `cars`, `bugs`, `birds`, or `train` can find related wording such as `footsteps`, `traffic`, `cricket`, `crows`, or `railroad`. Multiple words narrow the results.
+- One master deck of recording ideas.
+- The deck is shuffled and prompts are drawn from the front.
+- Completed prompts move to a discard pile.
+- When the deck runs low, the discard pile is recycled with recently completed prompts kept toward the back.
+- Double-tap the top bar to reshuffle the current deck.
 
-The vocabulary is intentionally stored separately so it can grow without changing old log entries.
+## Prompt styling
+
+- The collage placement and uneven spacing remain random.
+- Each page has one dark charcoal Anchor prompt.
+- Supporting prompts use weighted charcoal, gray, dusty pink, and pink-gray styles.
+- Direct neighbors never use the exact same text color.
+- Typography changes emphasis without changing the collage rules.
+
+## Recording log
+
+Double-tap the bottom bar to open or close the recording log. The log includes sound search, highlights, editing, and Backup / Restore / Merge.

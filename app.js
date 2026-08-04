@@ -1,68 +1,134 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "goListen.phase1.v2";
+  const STORAGE_KEY = "goListen.phase1.v3";
   const LOG_STORAGE_KEY = "goListen.recordingLog.v1";
   const BACKUP_FORMAT = "go-listen-backup";
   const BACKUP_VERSION = 1;
   const TEST_MODE = new URLSearchParams(location.search).get("test") === "1";
   const COOLDOWN_MS = TEST_MODE ? 10_000 : 60 * 60 * 1000;
 
-  // Master prompts stay lowercase. The page composer may add "record" to a few
-  // short prompts, but the visible list remains lowercase by design.
-  const library = {
-    subjects: [
-      "neighborhood ambience at dusk", "water through a metal culvert", "a country road from a hillside",
-      "a vehicle on a gravel road", "a rest area lobby", "an empty room", "wind through leaves",
-      "a playground after school", "rain under a porch roof", "a creek beside a road", "a parking garage",
-      "a quiet alley", "a bridge expansion joint", "a grocery store entrance", "a screen door",
-      "birds before sunrise", "a distant lawn mower", "a laundromat", "a stairwell", "a bus stop",
-      "a small town intersection", "a boat ramp", "a wooded trail", "a drainage ditch after rain",
-      "a vending machine hum", "a farm field at dusk", "an underpass", "a hotel hallway",
-      "a public park in the morning", "a creek crossing", "a metal fence in the wind",
-      "a restaurant kitchen from outside", "a warehouse loading area", "a fountain in a public space",
-      "a train crossing", "a basketball court", "a marina", "a tunnel or covered passage",
-      "a school parking lot after hours", "a gas station at night", "a construction site from a distance",
-      "a riverbank", "a waiting room", "a public elevator", "a wooded ravine", "a farm gate",
-      "a quiet downtown block", "a roadside pull-off", "a pedestrian bridge", "an old barn"
-    ],
-    scavenger: [
-      "church bells", "far away fireworks", "a passing freight train", "a helicopter overhead",
-      "a combine harvesting", "a distant siren", "a dog barking across a neighborhood",
-      "a train horn from far away", "thunder before the rain", "a plane taking off or landing",
-      "an announcement over an intercom", "a motorcycle passing", "a flock of geese overhead",
-      "a delivery truck backing up", "a school bell", "a towboat or barge", "a street sweeper",
-      "a marching band in the distance", "a snowplow", "a sudden burst of wind",
-      "a train crossing gate", "a public-address echo", "a passing horse trailer", "a distant crowd",
-      "a low-flying small plane", "a vehicle crossing a bridge", "a church service heard from outside",
-      "a freight yard", "a storm drain gurgling", "a flock of birds taking off", "a door slamming in an empty building",
-      "a whistle carried by the wind", "an ice cream truck", "a chainsaw in the distance",
-      "a tractor on the road", "a boat engine approaching", "a backup alarm echoing",
-      "a passing emergency vehicle", "a public clock striking", "a distant sports game",
-      "a garbage truck", "a cicada surge", "a sudden downpour", "a metal sign rattling",
-      "a train coupling", "a low electrical buzz", "a truck using engine brakes", "a flock of crows",
-      "a bridge deck humming under traffic", "a distant horn with a long echo"
-    ],
-    perspectives: [
-      "something metallic", "beneath a bridge", "through a doorway", "from underneath something",
-      "the first sound after arriving", "at sunrise", "at sunset", "during blue hour", "one steady hum",
-      "something rhythmic", "from inside a parked vehicle", "with a wall behind you", "from ground level",
-      "from the top of a hill", "a sound reflected by concrete", "through a fence",
-      "before you can see the source", "after the source passes", "a sound from two rooms away",
-      "a place that feels empty", "a place that feels busy", "the quietest sound you notice",
-      "a sound partly hidden by traffic", "from the edge of a crowd", "beside moving water",
-      "with your back to the source", "something repeating imperfectly", "a sound that comes and goes",
-      "a place changing from day to night", "from a stair landing", "a sound through glass",
-      "a mechanical rhythm", "something wind-powered", "a sound with a long decay",
-      "where two soundscapes meet", "a sound from across water", "under a roof during rain",
-      "a familiar place with eyes closed", "the space between passing vehicles",
-      "a sound that seems farther than it is", "near an open window", "a sound from behind a barrier",
-      "the moment a machine stops", "the moment a machine starts", "one minute without moving",
-      "a sound framed by an opening", "where the echo is stronger than the source",
-      "a place just after people leave", "a sound that changes as you stand still",
-      "the atmosphere before weather arrives"
-    ]
-  };
+  // One master deck. Prompts stay lowercase. The page composer may add
+  // "record" to a few short prompts, but the visible list remains lowercase.
+  const prompts = [
+    "morning birds",
+    "evening birds",
+    "summer bugs",
+    "wind through leaves",
+    "quiet pine trees",
+    "rain on leaves",
+    "rain on pavement",
+    "rain on a roof",
+    "distant traffic at night",
+    "a quiet daytime neighborhood",
+    "neighborhood ambience at dusk",
+    "playground ambience",
+    "kids playing at a park",
+    "dogs barking in the distance",
+    "a passing freight train",
+    "a distant train horn",
+    "church bells",
+    "an old metal gate",
+    "footsteps on gravel",
+    "footsteps on concrete",
+    "footsteps on wooden boards",
+    "water dripping",
+    "running water",
+    "a small stream",
+    "a car driving on a gravel road",
+    "wind chimes before a storm",
+    "flags flapping",
+    "an empty room",
+    "your backyard at 3 am",
+    "your front porch after it rains",
+    "a city sidewalk",
+    "a country road",
+    "birds before sunrise",
+    "frogs after dark",
+    "night insects",
+    "a lawn mower in the distance",
+    "corn rustling in the wind",
+    "leaves blowing across pavement",
+    "beneath a bridge",
+    "water under a bridge",
+    "a park bench perspective",
+    "an underpass",
+    "a quiet parking lot in the middle of nowhere",
+    "an open field at midday",
+    "highway traffic from an overpass",
+    "a youth football practice",
+    "a flower bush full of bees",
+    "kids playing in the sprinkler",
+    "a wasp nest (carefully)",
+    "inside a covered bridge",
+    "a field of cows away from traffic",
+    "in a state park",
+    "a campfire",
+    "a yard sprinkler",
+    "far away fireworks",
+    "snow falling",
+    "heavy rain",
+    "a thunderstorm",
+    "a foggy morning near a creek",
+    "melting icicles",
+    "fall leaves blowing across a quiet parking lot",
+    "a parade passing by",
+    "a church picnic",
+    "a college football tailgate",
+    "a cemetery at night",
+    "a high school football game",
+    "a baseball game from the parking lot",
+    "construction equipment",
+    "a farmers market",
+    "ice breaking in a shallow stream",
+    "a school dismissal",
+    "a carnival midway",
+    "holiday fireworks on the river or town square",
+    "footsteps in deep snow",
+    "a tornado siren",
+    "water moving through a metal culvert",
+    "a country road from a hillside vantage point",
+    "a vehicle on a gravel road",
+    "a rest area lobby",
+    "an announcement over an intercom",
+    "an urban area from the top of a parking garage",
+    "an alley outside a bar at night",
+    "a barge going down the river",
+    "an airport observation area",
+    "planes coming in to land",
+    "a railroad crossing as a train approaches",
+    "a marina in the late afternoon",
+    "an active boat ramp",
+    "a dam spillway",
+    "a waterfall",
+    "from inside a pedestrian tunnel",
+    "a factory from a public sidewalk",
+    "cars driving on wet roads",
+    "a neighborhood immediately after rain",
+    "before sunrise",
+    "at sunrise",
+    "after sunset",
+    "at sunset",
+    "inside a parking garage",
+    "beneath a railroad bridge as a train passes over",
+    "through a chain link fence",
+    "in the tree tops",
+    "from a creek bank",
+    "inside a concrete tunnel",
+    "from a boat ramp",
+    "buzzing power lines",
+    "inside a picnic shelter",
+    "across a frozen field",
+    "along a tree line",
+    "inside an empty pavilion",
+    "next to an abandoned building",
+    "at the edge of a cornfield",
+    "beneath a highway overpass",
+    "inside a stairwell",
+    "in the woods after a rain",
+    "in a train yard",
+    "water coming out of a downspout"
+  ];
 
   const successMessages = [
     "Well done.", "Great work.", "Congratulations.", "Your ears will appreciate it.",
@@ -71,29 +137,32 @@
     "You found the moment.", "A good sound found you.", "That was worth stopping for."
   ];
 
-  const plans = [
-    { subjects: 6, scavenger: 3, perspectives: 3 },
-    { subjects: 5, scavenger: 3, perspectives: 3 },
-    { subjects: 5, scavenger: 2, perspectives: 3 },
-    { subjects: 4, scavenger: 2, perspectives: 3 },
-    { subjects: 4, scavenger: 2, perspectives: 2 },
-    { subjects: 3, scavenger: 2, perspectives: 2 }
+  // Try the largest calm collage first; step down only when the viewport
+  // cannot hold it without scrolling.
+  const promptCounts = [12, 11, 10, 9, 8, 7];
+
+  // Geometry stays random and independent from typography.
+  const layoutSets = [
+    { indent: 1 }, { indent: 8 }, { indent: 17 }, { indent: 4 },
+    { indent: 12 }, { indent: 22 }, { indent: 6 }, { indent: 14 },
+    { indent: 2 }, { indent: 19 }, { indent: 9 }, { indent: 25 }
   ];
 
-  const styleSets = [
-    { indent: 1, size: 1.00, line: 1.08, tone: "#585255" },
-    { indent: 8, size: 1.14, line: 1.04, tone: "#675d61" },
-    { indent: 17, size: 0.91, line: 1.10, tone: "#74696d" },
-    { indent: 4, size: 1.34, line: 0.98, tone: "#62575c" },
-    { indent: 12, size: 1.04, line: 1.07, tone: "#8b717a" },
-    { indent: 22, size: 0.88, line: 1.11, tone: "#6e6468" },
-    { indent: 6, size: 0.96, line: 1.09, tone: "#7f6870" },
-    { indent: 14, size: 1.22, line: 1.01, tone: "#5c5658" },
-    { indent: 2, size: 0.90, line: 1.11, tone: "#856f77" },
-    { indent: 19, size: 1.08, line: 1.05, tone: "#645b5f" },
-    { indent: 9, size: 0.94, line: 1.10, tone: "#796d71" },
-    { indent: 25, size: 1.29, line: 1.00, tone: "#685d62" }
+  // Curated styles use weighted probability. Exact neighboring colors are
+  // prevented, and one non-pink anchor is assigned per page.
+  const textStyles = [
+    { id: "stone", size: 1.12, line: 1.03, tone: "#4f4a4d", color: "charcoal", weight: 600, tracking: "-0.018em", probability: 28 },
+    { id: "journal", size: 1.00, line: 1.07, tone: "#655f62", color: "warm-gray", weight: 500, tracking: "-0.012em", probability: 25 },
+    { id: "blush", size: 1.04, line: 1.05, tone: "#b8758e", color: "dusty-pink", weight: 500, tracking: "-0.012em", probability: 18 },
+    { id: "whisper", size: 0.90, line: 1.10, tone: "#817a7e", color: "light-gray", weight: 400, tracking: "-0.006em", probability: 15 },
+    { id: "rose", size: 0.95, line: 1.08, tone: "#9f7c88", color: "pink-gray", weight: 500, tracking: "-0.008em", probability: 14 }
   ];
+
+  const anchorStyle = {
+    id: "anchor", size: 1.29, line: 0.99, tone: "#423e40",
+    color: "anchor-charcoal", weight: 600, tracking: "-0.022em"
+  };
+
 
   const els = {
     promptScreen: document.getElementById("promptScreen"),
@@ -125,11 +194,8 @@
 
   function createInitialState() {
     return {
-      queues: {
-        subjects: shuffle(library.subjects.map((_, i) => i)),
-        scavenger: shuffle(library.scavenger.map((_, i) => i)),
-        perspectives: shuffle(library.perspectives.map((_, i) => i))
-      },
+      deck: shuffle(prompts.map((_, i) => i)),
+      discard: [],
       cooldownUntil: 0,
       successMessage: "Well done."
     };
@@ -138,7 +204,7 @@
   function loadState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (parsed?.queues?.subjects && parsed?.queues?.scavenger && parsed?.queues?.perspectives) return parsed;
+      if (Array.isArray(parsed?.deck) && Array.isArray(parsed?.discard)) return parsed;
     } catch (_) {}
     const fresh = createInitialState();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
@@ -197,18 +263,38 @@
     appendBlocks(target, 10, on);
   }
 
-  function itemsForPlan(plan) {
-    const items = [];
-    Object.entries(plan).forEach(([category, count]) => {
-      state.queues[category].slice(0, count).forEach(id => {
-        items.push({ category, id, baseText: library[category][id] });
-      });
-    });
-    return shuffle(items);
+  function replenishDeck(minimumCount) {
+    if (state.deck.length >= minimumCount || state.discard.length === 0) return;
+
+    // Keep the most recently completed prompts away from the front of the
+    // recycled deck so they cannot immediately reappear.
+    const recentCount = Math.min(18, state.discard.length);
+    const split = Math.max(0, state.discard.length - recentCount);
+    const older = shuffle(state.discard.slice(0, split));
+    const recent = shuffle(state.discard.slice(split));
+    state.deck.push(...older, ...recent);
+    state.discard = [];
+    saveState();
+  }
+
+  function itemsForCount(count) {
+    replenishDeck(count);
+    return state.deck.slice(0, count).map(id => ({ id, baseText: prompts[id] }));
+  }
+
+  function weightedTextStyle(previousColor) {
+    const choices = textStyles.filter(style => style.color !== previousColor);
+    const total = choices.reduce((sum, style) => sum + style.probability, 0);
+    let roll = Math.random() * total;
+    for (const style of choices) {
+      roll -= style.probability;
+      if (roll <= 0) return style;
+    }
+    return choices[choices.length - 1];
   }
 
   function composePage(items) {
-    const composed = items.map(item => ({ ...item, text: item.baseText }));
+    const composed = shuffle(items).map(item => ({ ...item, text: item.baseText }));
     const eligible = shuffle(composed
       .map((item, index) => ({ index, length: item.baseText.length }))
       .filter(item => item.length <= 36));
@@ -219,11 +305,17 @@
       composed[index].text = `record ${composed[index].baseText}`;
     });
 
-    const styles = shuffle(styleSets);
+    const anchorCandidates = composed
+      .map((item, index) => ({ index, length: item.text.length }))
+      .filter(item => item.length <= 42);
+    const anchorIndex = anchorCandidates.length
+      ? anchorCandidates[Math.floor(Math.random() * anchorCandidates.length)].index
+      : Math.floor(Math.random() * composed.length);
 
-    // Compose actual clusters rather than evenly spaced rows. Close gaps remain
-    // close; cluster breaks remain visibly larger and are capped independently.
+    const layouts = shuffle(layoutSets);
+    let previousColor = null;
     let remainingInCluster = 1 + Math.floor(Math.random() * 3);
+
     return composed.map((item, index) => {
       let gapKind = "none";
       let gapSeed = 0;
@@ -238,9 +330,15 @@
           gapSeed = Math.random();
         }
       }
+
+      const type = index === anchorIndex
+        ? anchorStyle
+        : weightedTextStyle(previousColor);
+      previousColor = type.color;
+
       return {
         ...item,
-        style: styles[index % styles.length],
+        style: { ...layouts[index % layouts.length], ...type },
         gapKind,
         gapSeed
       };
@@ -345,11 +443,13 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "prompt";
-      button.dataset.category = item.category;
       button.dataset.id = String(item.id);
       button.style.setProperty("--indent", `${style.indent}%`);
       button.style.setProperty("--tone", style.tone);
       button.style.setProperty("--line", String(style.line || 1.08));
+      button.style.setProperty("--weight", String(style.weight || 400));
+      button.style.setProperty("--tracking", style.tracking || "-0.012em");
+      button.dataset.textStyle = style.id;
       button.setAttribute("aria-label", `Complete: ${item.text}`);
       button.innerHTML = `<span class="checkbox" aria-hidden="true"></span><span class="prompt-text"></span>`;
       button.querySelector(".prompt-text").textContent = item.text;
@@ -373,8 +473,8 @@
     els.successScreen.hidden = true;
 
     let chosen = null;
-    for (const plan of plans) {
-      const composition = composePage(itemsForPlan(plan));
+    for (const count of promptCounts) {
+      const composition = composePage(itemsForCount(count));
       renderPromptItems(composition);
       void els.promptList.offsetHeight;
       if (fitsViewport()) {
@@ -383,7 +483,7 @@
       }
     }
 
-    if (!chosen) chosen = composePage(itemsForPlan(plans[plans.length - 1]));
+    if (!chosen) chosen = composePage(itemsForCount(promptCounts[promptCounts.length - 1]));
     renderPromptItems(chosen);
   }
 
@@ -392,10 +492,10 @@
     button.classList.add("is-checked", "is-completing");
 
     setTimeout(() => {
-      const queue = state.queues[item.category];
-      const index = queue.indexOf(item.id);
-      if (index >= 0) queue.splice(index, 1);
-      queue.push(item.id);
+      const index = state.deck.indexOf(item.id);
+      if (index >= 0) state.deck.splice(index, 1);
+      state.discard.push(item.id);
+      replenishDeck(promptCounts[0]);
       state.cooldownUntil = Date.now() + COOLDOWN_MS;
       state.successMessage = successMessages[Math.floor(Math.random() * successMessages.length)];
       saveState();
@@ -450,9 +550,7 @@
     els.promptScreen.classList.add("is-fading");
 
     setTimeout(() => {
-      state.queues.subjects = shuffle(state.queues.subjects);
-      state.queues.scavenger = shuffle(state.queues.scavenger);
-      state.queues.perspectives = shuffle(state.queues.perspectives);
+      state.deck = shuffle(state.deck);
       saveState();
 
       makeTopSignature();
@@ -482,7 +580,7 @@
     }, 120);
   });
 
-  // Double-tap/click the top signature to reshuffle all three queues.
+  // Double-tap/click the top signature to reshuffle the full deck.
   let topTapTime = 0;
   els.signatureTop.addEventListener("click", event => {
     const now = Date.now();
@@ -527,9 +625,7 @@
 
   function resetFromSuccess() {
     state.cooldownUntil = 0;
-    state.queues.subjects = shuffle(state.queues.subjects);
-    state.queues.scavenger = shuffle(state.queues.scavenger);
-    state.queues.perspectives = shuffle(state.queues.perspectives);
+    state.deck = shuffle(state.deck);
     saveState();
     activeMainScreen = "prompt";
     render();
