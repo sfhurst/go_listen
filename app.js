@@ -127,14 +127,24 @@
     "inside a stairwell",
     "in the woods after a rain",
     "in a train yard",
-    "water coming out of a downspout"
+    "water coming out of a downspout",
   ];
 
   const successMessages = [
-    "Well done.", "Great work.", "Congratulations.", "Your ears will appreciate it.",
-    "Nice find.", "Good catch.", "Another sound saved.", "You noticed something today.",
-    "That one was worth hearing.", "The world sounds different now.", "Keep your recorder close.",
-    "You found the moment.", "A good sound found you.", "That was worth stopping for."
+    "Well done.",
+    "Great work.",
+    "Congratulations.",
+    "Your ears will appreciate it.",
+    "Nice find.",
+    "Good catch.",
+    "Another sound saved.",
+    "You noticed something today.",
+    "That one was worth hearing.",
+    "The world sounds different now.",
+    "Keep your recorder close.",
+    "You found the moment.",
+    "A good sound found you.",
+    "That was worth stopping for.",
   ];
 
   // Try the largest calm collage first; step down only when the viewport
@@ -143,26 +153,39 @@
 
   // Geometry stays random and independent from typography.
   const layoutSets = [
-    { indent: 1 }, { indent: 8 }, { indent: 17 }, { indent: 4 },
-    { indent: 12 }, { indent: 22 }, { indent: 6 }, { indent: 14 },
-    { indent: 2 }, { indent: 19 }, { indent: 9 }, { indent: 25 }
+    { indent: 1 },
+    { indent: 8 },
+    { indent: 17 },
+    { indent: 4 },
+    { indent: 12 },
+    { indent: 22 },
+    { indent: 6 },
+    { indent: 14 },
+    { indent: 2 },
+    { indent: 19 },
+    { indent: 9 },
+    { indent: 25 },
   ];
 
   // Curated styles use weighted probability. Exact neighboring colors are
   // prevented, and one non-pink anchor is assigned per page.
   const textStyles = [
     { id: "stone", size: 1.12, line: 1.03, tone: "#4f4a4d", color: "charcoal", weight: 600, tracking: "-0.018em", probability: 28 },
-    { id: "journal", size: 1.00, line: 1.07, tone: "#655f62", color: "warm-gray", weight: 500, tracking: "-0.012em", probability: 25 },
+    { id: "journal", size: 1.0, line: 1.07, tone: "#655f62", color: "warm-gray", weight: 500, tracking: "-0.012em", probability: 25 },
     { id: "blush", size: 1.04, line: 1.05, tone: "#b8758e", color: "dusty-pink", weight: 500, tracking: "-0.012em", probability: 18 },
-    { id: "whisper", size: 0.90, line: 1.10, tone: "#817a7e", color: "light-gray", weight: 400, tracking: "-0.006em", probability: 15 },
-    { id: "rose", size: 0.95, line: 1.08, tone: "#9f7c88", color: "pink-gray", weight: 500, tracking: "-0.008em", probability: 14 }
+    { id: "whisper", size: 0.9, line: 1.1, tone: "#817a7e", color: "light-gray", weight: 400, tracking: "-0.006em", probability: 15 },
+    { id: "rose", size: 0.95, line: 1.08, tone: "#9f7c88", color: "pink-gray", weight: 500, tracking: "-0.008em", probability: 14 },
   ];
 
   const anchorStyle = {
-    id: "anchor", size: 1.29, line: 0.99, tone: "#423e40",
-    color: "anchor-charcoal", weight: 600, tracking: "-0.022em"
+    id: "anchor",
+    size: 1.29,
+    line: 0.99,
+    tone: "#423e40",
+    color: "anchor-charcoal",
+    weight: 600,
+    tracking: "-0.022em",
   };
-
 
   const els = {
     promptScreen: document.getElementById("promptScreen"),
@@ -175,7 +198,7 @@
     signatureSuccessBottom: document.getElementById("signatureSuccessBottom"),
     logScreen: document.getElementById("logScreen"),
     signatureLogTop: document.getElementById("signatureLogTop"),
-    signatureLogBottom: document.getElementById("signatureLogBottom")
+    signatureLogBottom: document.getElementById("signatureLogBottom"),
   };
 
   let state = loadState();
@@ -198,15 +221,31 @@
       deck: shuffle(prompts.map((_, i) => i)),
       discard: [],
       cooldownUntil: 0,
-      successMessage: "Well done."
+      successMessage: "Well done.",
     };
   }
 
   function loadState() {
     try {
       const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      if (Array.isArray(parsed?.deck) && Array.isArray(parsed?.discard)) return parsed;
+
+      if (Array.isArray(parsed?.deck) && Array.isArray(parsed?.discard)) {
+        const validIds = new Set(prompts.map((_, index) => index));
+
+        const deck = parsed.deck.filter(id => validIds.has(id));
+        const discard = parsed.discard.filter(id => validIds.has(id) && !deck.includes(id));
+
+        const knownIds = new Set([...deck, ...discard]);
+        const newIds = prompts.map((_, index) => index).filter(id => !knownIds.has(id));
+
+        return {
+          ...parsed,
+          deck: [...deck, ...shuffle(newIds)],
+          discard,
+        };
+      }
     } catch (_) {}
+
     const fresh = createInitialState();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
     return fresh;
@@ -234,15 +273,17 @@
     });
 
     if (prefersReducedMotion()) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      buttons.forEach(button => button.classList.add("is-settling"));
-      els.signatureTop.classList.add("is-waking");
-      els.signatureBottom.classList.add("is-waking");
-      window.setTimeout(() => {
-        els.signatureTop.classList.remove("is-waking");
-        els.signatureBottom.classList.remove("is-waking");
-      }, 1750);
-    }));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        buttons.forEach(button => button.classList.add("is-settling"));
+        els.signatureTop.classList.add("is-waking");
+        els.signatureBottom.classList.add("is-waking");
+        window.setTimeout(() => {
+          els.signatureTop.classList.remove("is-waking");
+          els.signatureBottom.classList.remove("is-waking");
+        }, 1750);
+      }),
+    );
   }
 
   function scramblePromptPage(kind, onDone) {
@@ -311,7 +352,9 @@
     const on = new Set([0, 1]);
     const later = [3, 4, 5, 6, 7, 8, 9];
     const extraCount = 1 + Math.floor(Math.random() * 4);
-    shuffle(later).slice(0, extraCount).forEach(i => on.add(i));
+    shuffle(later)
+      .slice(0, extraCount)
+      .forEach(i => on.add(i));
     appendBlocks(target, 10, on);
   }
 
@@ -347,9 +390,7 @@
 
   function composePage(items) {
     const composed = shuffle(items).map(item => ({ ...item, text: item.baseText }));
-    const eligible = shuffle(composed
-      .map((item, index) => ({ index, length: item.baseText.length }))
-      .filter(item => item.length <= 36));
+    const eligible = shuffle(composed.map((item, index) => ({ index, length: item.baseText.length })).filter(item => item.length <= 36));
 
     const minimum = Math.min(3, eligible.length);
     const desired = Math.min(eligible.length, minimum + Math.floor(Math.random() * 3));
@@ -357,12 +398,8 @@
       composed[index].text = `record ${composed[index].baseText}`;
     });
 
-    const anchorCandidates = composed
-      .map((item, index) => ({ index, length: item.text.length }))
-      .filter(item => item.length <= 42);
-    const anchorIndex = anchorCandidates.length
-      ? anchorCandidates[Math.floor(Math.random() * anchorCandidates.length)].index
-      : Math.floor(Math.random() * composed.length);
+    const anchorCandidates = composed.map((item, index) => ({ index, length: item.text.length })).filter(item => item.length <= 42);
+    const anchorIndex = anchorCandidates.length ? anchorCandidates[Math.floor(Math.random() * anchorCandidates.length)].index : Math.floor(Math.random() * composed.length);
 
     const layouts = shuffle(layoutSets);
     let previousColor = null;
@@ -383,16 +420,14 @@
         }
       }
 
-      const type = index === anchorIndex
-        ? anchorStyle
-        : weightedTextStyle(previousColor);
+      const type = index === anchorIndex ? anchorStyle : weightedTextStyle(previousColor);
       previousColor = type.color;
 
       return {
         ...item,
         style: { ...layouts[index % layouts.length], ...type },
         gapKind,
-        gapSeed
+        gapSeed,
       };
     });
   }
@@ -440,9 +475,7 @@
 
   function availableCompositionHeight() {
     const styles = getComputedStyle(els.promptList);
-    return els.promptList.clientHeight -
-      (parseFloat(styles.paddingTop) || 0) -
-      (parseFloat(styles.paddingBottom) || 0);
+    return els.promptList.clientHeight - (parseFloat(styles.paddingTop) || 0) - (parseFloat(styles.paddingBottom) || 0);
   }
 
   function enlargeTypographyToFit(items) {
@@ -471,7 +504,7 @@
 
     const buttons = [...els.promptList.querySelectorAll(".prompt")];
     const breakIndexes = items
-      .map((item, index) => item.gapKind === "break" ? index : -1)
+      .map((item, index) => (item.gapKind === "break" ? index : -1))
       .filter(index => index > 0)
       .sort((a, b) => items[b].gapSeed - items[a].gapSeed);
 
@@ -517,8 +550,7 @@
   }
 
   function fitsViewport() {
-    return measuredCompositionHeight() <= availableCompositionHeight() + 1 &&
-      document.documentElement.scrollHeight <= window.innerHeight + 1;
+    return measuredCompositionHeight() <= availableCompositionHeight() + 1 && document.documentElement.scrollHeight <= window.innerHeight + 1;
   }
 
   function renderAdaptiveList() {
@@ -666,8 +698,6 @@
     }
   });
 
-
-
   function bindDoubleTap(element, callback) {
     let lastTap = 0;
     element.addEventListener("click", event => {
@@ -751,15 +781,13 @@
     restore: document.getElementById("restoreButton"),
     merge: document.getElementById("mergeButton"),
     fileInput: document.getElementById("backupFileInput"),
-    status: document.getElementById("backupStatus")
+    status: document.getElementById("backupStatus"),
   };
 
   let pendingFileMode = null;
   let currentLogSearch = "";
 
-  const SOUND_TERMS = Array.isArray(window.GO_LISTEN_SOUND_TERMS)
-    ? window.GO_LISTEN_SOUND_TERMS
-    : [];
+  const SOUND_TERMS = Array.isArray(window.GO_LISTEN_SOUND_TERMS) ? window.GO_LISTEN_SOUND_TERMS : [];
 
   function loadLog() {
     try {
@@ -780,7 +808,7 @@
   }
 
   function showOnly(view) {
-    [logEls.listView, logEls.entryView, logEls.backupView].forEach(item => item.hidden = item !== view);
+    [logEls.listView, logEls.entryView, logEls.backupView].forEach(item => (item.hidden = item !== view));
     document.querySelector(".log-shell").scrollTop = 0;
   }
 
@@ -814,10 +842,23 @@
 
   function entrySearchText(entry) {
     const values = [
-      entry.recordingNumber, entry.date, formatDate(entry.date), entry.time, formatTime(entry.time),
-      entry.location, entry.subject, entry.device, entry.deviceOther, ...(entry.mics || []),
-      entry.accessories, entry.volumeSetting, entry.highlights, entry.captured, entry.feeling,
-      entry.quality, entry.keep
+      entry.recordingNumber,
+      entry.date,
+      formatDate(entry.date),
+      entry.time,
+      formatTime(entry.time),
+      entry.location,
+      entry.subject,
+      entry.device,
+      entry.deviceOther,
+      ...(entry.mics || []),
+      entry.accessories,
+      entry.volumeSetting,
+      entry.highlights,
+      entry.captured,
+      entry.feeling,
+      entry.quality,
+      entry.keep,
     ];
     return normalizeSearchText(values.filter(Boolean).join(" "));
   }
@@ -829,9 +870,7 @@
 
     SOUND_TERMS.forEach(group => {
       const normalizedGroup = group.map(normalizeSearchText).filter(Boolean);
-      const belongs = normalizedGroup.some(item =>
-        item === normalized || item.split(" ").includes(normalized) || normalized.split(" ").includes(item)
-      );
+      const belongs = normalizedGroup.some(item => item === normalized || item.split(" ").includes(normalized) || normalized.split(" ").includes(item));
       if (belongs) normalizedGroup.forEach(item => matches.add(item));
     });
 
@@ -865,9 +904,7 @@
     logEls.empty.hidden = allEntries.length !== 0;
     logEls.noResults.hidden = !query || entries.length !== 0 || allEntries.length === 0;
     logEls.clearSearch.hidden = !query;
-    logEls.searchStatus.textContent = query
-      ? `${entries.length} ${entries.length === 1 ? "recording" : "recordings"} found`
-      : "";
+    logEls.searchStatus.textContent = query ? `${entries.length} ${entries.length === 1 ? "recording" : "recordings"} found` : "";
 
     entries.forEach(entry => {
       const button = document.createElement("button");
@@ -931,7 +968,7 @@
       capturedField: values.captured,
       feelingField: values.feeling,
       qualityField: values.quality,
-      keepField: values.keep
+      keepField: values.keep,
     };
     Object.entries(fields).forEach(([idName, value]) => {
       document.getElementById(idName).value = value || "";
@@ -965,7 +1002,7 @@
       captured: value("capturedField"),
       feeling: value("feelingField"),
       quality: value("qualityField"),
-      keep: document.getElementById("keepField").value
+      keep: document.getElementById("keepField").value,
     };
   }
 
@@ -996,7 +1033,7 @@
       format: BACKUP_FORMAT,
       version: BACKUP_VERSION,
       createdAt: new Date().toISOString(),
-      entries: loadLog()
+      entries: loadLog(),
     };
   }
 
@@ -1072,7 +1109,6 @@
     const file = logEls.fileInput.files?.[0];
     if (file) handleBackupFile(file);
   });
-
 
   render();
 })();
