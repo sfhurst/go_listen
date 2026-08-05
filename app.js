@@ -224,10 +224,12 @@
     const buttons = [...els.promptList.querySelectorAll(".prompt")];
     buttons.forEach((button, index) => {
       const direction = Math.random() < 0.5 ? -1 : 1;
-      button.style.setProperty("--enter-x", `${direction * (2 + Math.random() * 8).toFixed(2)}px`);
-      button.style.setProperty("--enter-y", `${(-5 + Math.random() * 11).toFixed(2)}px`);
-      button.style.setProperty("--enter-scale", (0.955 + Math.random() * 0.025).toFixed(3));
-      button.style.setProperty("--enter-delay", `${Math.round(index * 34 + Math.random() * 80)}ms`);
+      button.style.setProperty("--enter-x", `${direction * (3 + Math.random() * 4).toFixed(2)}px`);
+      button.style.setProperty("--enter-y", `${(-4 + Math.random() * 8).toFixed(2)}px`);
+      button.style.setProperty("--enter-scale", (0.975 + Math.random() * 0.012).toFixed(3));
+      // Every prompt wakes at nearly the same time. The tiny random offset keeps
+      // the page organic without making it build from top to bottom.
+      button.style.setProperty("--enter-delay", `${Math.round(Math.random() * 110)}ms`);
       button.classList.remove("is-settling");
     });
 
@@ -239,7 +241,7 @@
       window.setTimeout(() => {
         els.signatureTop.classList.remove("is-waking");
         els.signatureBottom.classList.remove("is-waking");
-      }, 1200);
+      }, 1750);
     }));
   }
 
@@ -258,11 +260,11 @@
       button.style.setProperty("--exit-y", `${y}px`);
       button.style.setProperty("--exit-rotate", `${angle}deg`);
       button.style.setProperty("--exit-scale", (0.91 + Math.random() * 0.08).toFixed(3));
-      button.style.setProperty("--exit-delay", `${Math.round(Math.random() * 210 + index * 8)}ms`);
+      button.style.setProperty("--exit-delay", `${Math.round(Math.random() * 110)}ms`);
       button.classList.add("is-scrambling");
     });
     els.promptScreen.classList.add(kind === "complete" ? "is-completing-page" : "is-rerolling-page");
-    window.setTimeout(onDone, 1080);
+    window.setTimeout(onDone, 1480);
   }
 
   function currentCooldown() {

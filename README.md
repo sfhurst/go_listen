@@ -9,3 +9,11 @@ This build adds restrained motion without changing the approved collage geometry
 - Top and bottom signature bars remain on the completion screen.
 - `?test=1` changes the cooldown to 10 seconds for testing.
 - Reduced-motion system preferences are respected.
+
+
+## Focus-motion update
+
+- The full prompt composition wakes together over roughly 1.5 seconds.
+- Prompts begin slightly blurred, faint, small, and offset, then focus and settle at once.
+- Completion and reroll transitions loosen and blur the whole composition together rather than cascading from top to bottom.
+- Reduced-motion preferences remain respected.
