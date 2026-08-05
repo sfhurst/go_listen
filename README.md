@@ -17,3 +17,7 @@ This build adds restrained motion without changing the approved collage geometry
 - Prompts begin slightly blurred, faint, small, and offset, then focus and settle at once.
 - Completion and reroll transitions loosen and blur the whole composition together rather than cascading from top to bottom.
 - Reduced-motion preferences remain respected.
+
+## Favicon
+
+The project includes the Go Listen pink pulse-bar favicon in browser, Apple touch, and Android sizes.
